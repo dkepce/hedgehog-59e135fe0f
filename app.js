@@ -505,7 +505,8 @@ function fMsg(t){$("#fMsg").textContent=t}
 function renderFileDlg(){
   let h="";
   if(!FS_OK){
-    h=`<p>Your planner saves itself in this browser after every change. For extra safety, save a <b>backup copy</b> now and then (for example into iCloud Drive).</p>
+    h=`<p>Everything you do is <b>saved automatically in this browser</b> — when you reopen Hedgehog, it is all still there.</p>
+       <p>A <b>backup</b> is a safety copy as of <i>right now</i>, kept in a file (for example in iCloud Drive). Changes you make afterwards are <b>not</b> added to it — make a new backup to capture them.</p>
        <p class="dim">${lastCopy()?"Last backup: "+new Date(lastCopy()).toLocaleDateString():"No backup copy yet."}</p>`;
     if(isBrave)h+=`<details class="tip"><summary>Brave: turn on fully automatic file saving (one time)</summary>
        <ol><li>Open a new tab and type <b>brave://flags</b></li><li>Search for <b>File System Access API</b></li><li>Set it to <b>Enabled</b> and click <b>Relaunch</b></li><li>Come back here and choose <b>Create my planner file</b></li></ol></details>`;
@@ -519,7 +520,8 @@ function renderFileDlg(){
     h=`<p>Keep your planner in a file you can see — like <b>Hedgehog.hdg</b> in Documents or iCloud Drive. It then saves itself after every change.</p>
        <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn primary" data-f="create" type="button">Create my planner file…</button><button class="iconbtn" data-f="open" type="button">I already have one…</button></div>`;
   }
-  h+=`<hr><b>Backup &amp; restore</b><div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="backup" type="button">⬇ Backup</button><label class="iconbtn" style="cursor:pointer">⬆ Restore<input type="file" id="bkFile" accept=".hdg,.json,application/json" hidden></label></div>`;
+  h+=`<hr><b>Backup &amp; restore</b><div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="backup" type="button">⬇ Backup</button><label class="iconbtn" style="cursor:pointer">⬆ Restore<input type="file" id="bkFile" accept=".hdg,.json,application/json" hidden></label></div>
+       <p class="dim" style="margin:6px 0 0">Backup saves a copy of everything as it is now. Restore replaces what is on screen with the contents of a backup file.</p>`;
   $("#fBody").innerHTML=h;
 }
 $("#fBody").addEventListener("click",async e=>{
