@@ -1,4 +1,4 @@
-const CACHE = "hedgehog-v3";
+const CACHE = "hedgehog-v4";
 const SHELL = ["./", "./index.html", "./style.css", "./app.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
@@ -14,7 +14,7 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req).then(res => {
+    fetch(req, { cache: "no-cache" }).then(res => {   // always re-check with the server, so updates show up right away
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(req, copy));
       return res;
