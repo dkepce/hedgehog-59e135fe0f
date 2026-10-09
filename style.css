@@ -177,3 +177,53 @@ body.dark .hd{color:#201d25}
   .pb td,.pb th{border-bottom:1px dotted #ddd;padding:2px 3px;text-align:left}
   .pb .c{text-align:center}
 }
+
+/* ===== v3: day-colored sidebar, file chip, duplicate, daily sheet ===== */
+.x.dup{margin-left:auto}
+.x.dup+.x{margin-left:2px}
+.ev .x.dup,.task .x.dup{font-size:12px}
+
+/* the sidebar calendar follows the active day's color (--ac is set from JS) */
+#side{--ac:#f6c7a0}
+.pill{background:color-mix(in srgb,var(--ac) 75%,white);color:#3a3030;transition:background .25s}
+.pill.end{background:color-mix(in srgb,var(--ac) 45%,white)}
+body.dark .pill{color:#201d25}
+.mini .mini-head select{border-color:color-mix(in srgb,var(--ac) 70%,var(--line))}
+.mini .cal button.inweek{background:color-mix(in srgb,var(--ac) 40%,var(--card));transition:background .25s}
+body.dark .mini .cal button.inweek{background:color-mix(in srgb,var(--ac) 30%,var(--card))}
+.mini .cal button.today{outline:2px solid color-mix(in srgb,var(--ac) 100%,black 25%)}
+.mini .cal button.sel{background:color-mix(in srgb,var(--ac) 100%,black 8%);color:#3a3030;font-weight:700;outline:2px solid color-mix(in srgb,var(--ac) 100%,black 28%)}
+body.dark .mini .cal button.sel{color:#201d25}
+.mini .cal button:hover{background:color-mix(in srgb,var(--ac) 55%,var(--card))}
+
+/* save-status chip */
+.chip2{border-radius:14px;padding:5px 12px;border:1px solid var(--line);cursor:pointer;font-size:12px;background:var(--card)}
+.chip2.ok{color:#3d7a4f;border-color:#bfe0c7;background:color-mix(in srgb,#c4e6c8 35%,var(--card))}
+.chip2.warn{color:#8a5a00;border-color:#ecd28a;background:#fff4c9}
+body.dark .chip2.warn{color:#f1d78a;background:#4a4223}
+body.dark .chip2.ok{color:#9fd8ae}
+.big{font-size:15px;margin:4px 0}
+#dlgFile hr{border:0;border-top:1px solid var(--line);margin:14px 0 10px}
+.modes{display:flex;gap:16px;margin-bottom:10px}
+.modes label{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+
+/* daily to-do sheet (print) */
+@media print{
+  .dayp{display:flex;flex-direction:column;min-height:190mm}
+  .dhd{display:flex;justify-content:space-between;align-items:baseline;background:var(--c);color:#3a3030;padding:4mm 6mm;border-radius:2mm}
+  .dhd b{font-size:20pt;letter-spacing:.22em;text-transform:uppercase}
+  .dhd span{font-size:12pt}
+  .dfocus{font-size:13pt;font-weight:600;font-style:italic;text-align:center;padding:4mm 0 2mm}
+  .dfocus small{font-weight:400;color:#777;margin-right:4px}
+  .dgrid{display:grid;grid-template-columns:5fr 7fr;gap:8mm;margin-top:4mm;flex:1}
+  .dgrid.one{grid-template-columns:1fr}
+  .ds{background:color-mix(in srgb,var(--c) 45%,white);text-align:center;letter-spacing:.25em;text-transform:uppercase;font-size:8.5pt;font-weight:600;padding:2mm;margin-bottom:1mm;color:#4a3f3f}
+  .de{display:flex;gap:3mm;padding:2.2mm 1mm;border-bottom:1px dotted #bbb;font-size:11pt}
+  .de b{flex:none;min-width:14mm;color:#777;font-weight:600}
+  .dt{display:flex;gap:3mm;align-items:flex-start;padding:2.6mm 1mm;border-bottom:1px dotted #bbb;font-size:11.5pt;min-height:9.5mm}
+  .dt i{flex:none;width:4.2mm;height:4.2mm;border:1.2px solid #777;border-radius:1mm;font-size:9pt;line-height:4mm;text-align:center;font-style:normal;margin-top:.6mm}
+  .dt.d span{text-decoration:line-through;color:#888}
+  .dt.d i{background:var(--c);border-color:var(--c);color:#3a3030}
+  .dn{color:#aaa;text-align:center;padding:2mm}
+  .dfoot{text-align:center;letter-spacing:.4em;font-size:8pt;color:#aaa;margin-top:4mm}
+}

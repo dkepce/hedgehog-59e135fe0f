@@ -20,7 +20,7 @@
   <aside id="side">
     <div class="banner" id="bannerTxt">HEDGEHOG</div>
     <div class="pill"><b>WEEK START</b><span id="wkStart"></span></div>
-    <div class="pill" style="background:#f7cfc9"><b>WEEK END</b><span id="wkEnd"></span></div>
+    <div class="pill end"><b>WEEK END</b><span id="wkEnd"></span></div>
     <div class="mini">
       <div class="mini-head">
         <button class="iconbtn" id="mPrev">‹</button>
@@ -46,6 +46,7 @@
       <button class="iconbtn" id="today">Today</button>
       <button class="iconbtn" id="next" title="Next week">›</button>
       <h2 id="title"></h2>
+      <button class="chip2 ok" id="fileChip" type="button">✓ Saved</button>
       <button class="iconbtn" id="exportBtn" title="Save weeks as a PDF">📄 Export PDF</button>
       <button class="iconbtn" id="cust">✨ Customize</button>
     </div>
@@ -63,14 +64,14 @@
   <div class="f"><label>“Focus” label</label><input id="lblFocus"></div>
   <div class="f"><label>Events label</label><input id="lblEvents"></div>
   <div class="f"><label>Tasks label</label><input id="lblTasks"></div>
-  <b style="display:block;margin-top:14px">Backup</b>
-  <p class="dim" style="margin:4px 0 8px">Your planner is stored in this browser only. Save a backup file now and then (and keep it in a safe place, e.g. iCloud Drive).</p>
-  <div class="dlgbtns" style="justify-content:flex-start">
-    <button class="iconbtn" id="bkSave" type="button">⬇ Save backup</button>
-    <label class="iconbtn" style="cursor:pointer">⬆ Restore backup<input type="file" id="bkFile" accept=".json,application/json" hidden></label>
-  </div>
-  <div class="dim" id="bkMsg" style="margin-top:6px"></div>
   <div style="text-align:right;margin-top:14px"><button class="iconbtn" onclick="document.getElementById('dlg').close()">Done</button></div>
+</dialog>
+
+<dialog id="dlgFile">
+  <h3 style="margin-top:0">💾 Your planner</h3>
+  <div id="fBody"></div>
+  <div class="dim" id="fMsg" style="margin-top:8px;min-height:1.2em"></div>
+  <div class="dlgbtns"><span style="flex:1"></span><button class="iconbtn" id="fClose" type="button">Close</button></div>
 </dialog>
 
 <dialog id="dlgSeries">
@@ -88,9 +89,10 @@
 
 <dialog id="dlgExport">
   <h3 style="margin-top:0">📄 Export to PDF</h3>
-  <b>Which weeks?</b>
-  <div class="opt"><label><input type="radio" name="xr" value="this" checked> The week I’m looking at <span class="dim" id="xThis"></span></label></div>
-  <div class="opt"><label><input type="radio" name="xr" value="range"> Selected weeks</label>
+  <div class="opt modes"><label><input type="radio" name="xm" value="week" checked> 📅 Weekly planner</label><label><input type="radio" name="xm" value="day"> ☑️ Daily to-do list</label></div>
+  <b id="xWhich">Which weeks?</b>
+  <div class="opt"><label><input type="radio" name="xr" value="this" checked> <span id="xThisLbl">The week I’m looking at</span> <span class="dim" id="xThis"></span></label></div>
+  <div class="opt"><label><input type="radio" name="xr" value="range"> <span id="xRangeLbl">Selected weeks</span></label>
     <div class="f inl" style="margin:6px 0 0 22px"><label>From</label><span><input type="date" id="xFrom"></span></div>
     <div class="f inl" style="margin:4px 0 0 22px"><label>To</label><span><input type="date" id="xTo"></span></div>
   </div>
@@ -98,7 +100,7 @@
   <div class="opt"><label><input type="checkbox" id="xEv" checked> Events</label></div>
   <div class="opt"><label><input type="checkbox" id="xTk" checked> Tasks</label></div>
   <div class="opt"><label><input type="checkbox" id="xHb"> Habits</label></div>
-  <div class="opt"><label><input type="checkbox" id="xTd"> Weekly to-do list</label></div>
+  <div class="opt" id="xTdRow"><label><input type="checkbox" id="xTd"> Weekly to-do list</label></div>
   <p class="dim" id="xCount" style="margin:10px 0 2px"></p>
   <p class="dim" style="margin:0">Next, your Mac’s print window opens — choose <b>PDF → Save as PDF</b> at the bottom left.</p>
   <div class="dlgbtns"><span style="flex:1"></span><button class="iconbtn" id="xCancel" type="button">Cancel</button><button class="iconbtn primary" id="xGo" type="button">Create PDF</button></div>

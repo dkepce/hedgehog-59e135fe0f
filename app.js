@@ -15,7 +15,6 @@ const KINDS=[["daily","Every day"],["weekdays","Every weekday (Mon–Fri)"],["we
 
 /* ---------- storage ---------- */
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function save(){try{localStorage.setItem("hedgehog.settings",JSON.stringify(S));localStorage.setItem("hedgehog.data",JSON.stringify(D))}catch(e){}}
 // (older builds used the "planner.*" keys — read them once so nothing is lost)
 let S=Object.assign({},DEFAULT_S,load("hedgehog.settings",null)||load("planner.settings",null)||{});
 if(S.lblBanner==="WEEKLY PLAN")S.lblBanner="HEDGEHOG";
@@ -42,7 +41,19 @@ function fixData(){
 }
 fixData();
 
+/* A real change bumps savedAt; re-rendering the same data does not. */
+let savedAt=0;try{savedAt=+localStorage.getItem("hedgehog.savedAt")||0}catch(e){}
+let lastSer=JSON.stringify({S,D});
+function payload(){return {app:"hedgehog",version:2,saved:new Date(savedAt||Date.now()).toISOString(),settings:S,data:D}}
+function persistLocal(){try{localStorage.setItem("hedgehog.settings",JSON.stringify(S));localStorage.setItem("hedgehog.data",JSON.stringify(D));localStorage.setItem("hedgehog.savedAt",String(savedAt))}catch(e){}}
+function save(){
+  const ser=JSON.stringify({S,D});
+  if(ser===lastSer)return;
+  lastSer=ser;savedAt=Date.now();persistLocal();scheduleFileWrite();
+}
+
 function day(k){return D.days[k]||(D.days[k]={focus:"",events:[],tasks:[]})}
+const todoOf=()=>D.todo[key(view)]||(D.todo[key(view)]=[]);
 function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
 
 /* ---------- repeating events ---------- */
@@ -76,20 +87,22 @@ let editing=null;   // {type:"t"|"ev"|"td"|"h", k, ref}
 const isEd=(type,k,ref)=>editing&&editing.type===type&&editing.k===k&&editing.ref===String(ref);
 
 /* ---------- rendering ---------- */
-function moveOpts(k){return Array.from({length:7},(_,i)=>{const d=addDays(view,i),kk=key(d);return `<option value="${kk}" ${kk===k?"selected":""}>${DAYN[d.getDay()].slice(0,3)} ${d.getDate()}</option>`}).join("")+'<option value="next">Next week →</option>'}
+function moveOpts(k,sel0){sel0=sel0||k;return Array.from({length:7},(_,i)=>{const d=addDays(view,i),kk=key(d);return `<option value="${kk}" ${kk===sel0?"selected":""}>${DAYN[d.getDay()].slice(0,3)} ${d.getDate()}</option>`}).join("")+'<option value="next">Next week →</option>'}
 function moveBox(k,extra){
-  return `<div class="row2"><span class="seg"><label><input type="radio" name="mode" value="move" checked> Move</label><label><input type="radio" name="mode" value="copy"> Copy</label></span> to <select class="mv">${moveOpts(k)}</select></div>
-  <div class="row2 hintline">Copy leaves the original as it was.</div>${extra||""}`;
+  const dup=editing&&editing.mode==="copy";
+  const nk=key(addDays(parseKey(k),1)),def=dup&&nk<=key(addDays(view,6))?nk:k;   // duplicating? suggest the next day
+  return `<div class="row2"><span class="seg"><label><input type="radio" name="mode" value="move" ${dup?"":"checked"}> Move</label><label><input type="radio" name="mode" value="copy" ${dup?"checked":""}> Duplicate</label></span> to <select class="mv">${moveOpts(k,def)}</select></div>
+  <div class="row2 hintline">Duplicate keeps the original where it is.</div>${extra||""}`;
 }
 function taskRow(t,j,k){
   if(isEd("t",k,j))return `<div class="task edit"><input class="ed" value="${esc(t.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button>${moveBox(k)}</div>`;
-  return `<div class="task ${t.d?"done":""}" draggable="true" data-drag="t" data-ref="${j}"><input type="checkbox" data-t="${j}" ${t.d?"checked":""}><span class="t" data-edit="t" data-ref="${j}">${esc(t.t)}</span><button class="x" data-del="${j}" type="button">✕</button></div>`}
+  return `<div class="task ${t.d?"done":""}" draggable="true" data-drag="t" data-ref="${j}"><input type="checkbox" data-t="${j}" ${t.d?"checked":""}><span class="t" data-edit="t" data-ref="${j}">${esc(t.t)}</span><button class="x dup" data-dup="t|${j}" type="button" title="Duplicate">⧉</button><button class="x" data-del="${j}" type="button" title="Delete">✕</button></div>`}
 function evRow(e,k){
   if(isEd("ev",k,e.ref)){
     const[h,m]=(e.time||":").split(":");
     const ser=e.src==="s"?`<div class="row2"><button class="lnk" type="button" data-series="${e.sid}">↻ Edit the whole series…</button></div>`:"";
     return `<div class="ev edit"><select class="eh">${hOpts(h)}</select>:<select class="em">${mOpts(m||"00")}</select><input class="ed" value="${esc(e.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button>${moveBox(k,ser)}</div>`}
-  return `<div class="ev" draggable="true" data-drag="ev" data-edit="ev" data-ref="${e.ref}"><span>${esc(e.time)}</span>${esc(e.t)}${e.src==="s"?'<b class="rep" title="Repeating event">↻</b>':""}<button class="x" data-evdel="${e.ref}" type="button" title="${e.src==="s"?"Remove only this one":"Delete"}">✕</button></div>`}
+  return `<div class="ev" draggable="true" data-drag="ev" data-edit="ev" data-ref="${e.ref}"><span>${esc(e.time)}</span>${esc(e.t)}${e.src==="s"?'<b class="rep" title="Repeating event">↻</b>':""}<button class="x dup" data-dup="ev|${e.ref}" type="button" title="Duplicate">⧉</button><button class="x" data-evdel="${e.ref}" type="button" title="${e.src==="s"?"Remove only this one":"Delete"}">✕</button></div>`}
 
 function render(){
   document.body.classList.toggle("dark",THEMES[S.theme]?.dark||false);
@@ -100,7 +113,7 @@ function render(){
   const todayK=key(new Date());
   let all=[];
   $("#board").innerHTML=Array.from({length:7},(_,i)=>{
-    const d=addDays(view,i),k=key(d),dd=day(k),wd=d.getDay(),c=S.colors[wd],p=pct(dd.tasks);
+    const d=addDays(view,i),k=key(d),dd=peek(k),wd=d.getDay(),c=S.colors[wd],p=pct(dd.tasks);
     all=all.concat(dd.tasks);
     return `<section class="day ${k===todayK?"today":""} ${k===sel?"sel":""}" style="--c:${c}" data-k="${k}">
       <div class="dh">${S.emoji[wd]||""} ${DAYN[wd]}</div><div class="dd">${fmtLong(d)}</div>
@@ -114,7 +127,7 @@ function render(){
       <input class="add" data-add="task" placeholder="+ add task">
     </section>`}).join("");
   const wp=pct(all);$("#wkBar").style.width=(wp||0)+"%";$("#wkPct").textContent=wp==null?"–":wp+"%";
-  const tk=key(view),td=D.todo[tk]||(D.todo[tk]=[]);
+  const td=D.todo[key(view)]||[];
   $("#todo").innerHTML=td.map((t,j)=>isEd("td","",j)?`<div class="task edit" style="--c:#cfc9bb"><input class="ed" value="${esc(t.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button></div>`:`<div class="task ${t.d?"done":""}"><input type="checkbox" data-td="${j}" ${t.d?"checked":""}><span class="t" data-edit="td" data-ref="${j}">${esc(t.t)}</span><button class="x" data-tdel="${j}" type="button">✕</button></div>`).join("")+`<input class="add" id="addTodo" style="--c:#cfc9bb" placeholder="+ add to weekly to-do">`;
   const tp=pct(td);$("#tdBar").style.width=(tp||0)+"%";$("#tdPct").textContent=tp==null?"–":tp+"%";
   renderHabits();renderCal();save();
@@ -143,6 +156,7 @@ function renderCal(){
   for(let i=0;i<42;i++){const d=addDays(first,i),k=key(d);
     h+=`<button data-d="${k}" class="${d.getMonth()!==mini.getMonth()?"out ":""}${k>=wsK&&k<=weK?"inweek ":""}${k===tk?"today ":""}${k===sel?"sel":""}">${d.getDate()}</button>`}
   $("#cal").innerHTML=h;
+  $("#side").style.setProperty("--ac",S.colors[parseKey(sel).getDay()]);   // calendar takes the active day's color
 }
 function go(d){sel=key(d);view=startOf(d,S.weekStart);mini=new Date(view.getFullYear(),view.getMonth(),1);render();$("#side").classList.remove("open");
   const el=document.querySelector(".day.sel");if(el)el.scrollIntoView({inline:"nearest",block:"nearest",behavior:"smooth"})}
@@ -189,6 +203,7 @@ $("#board").addEventListener("click",e=>{
     openSeries({t:s.querySelector("[data-add=ev]").value.trim(),time:h?h+":"+m:"",start:k,kind:"weekly",days:[parseKey(k).getDay()],until:""});
   }
   else if(tg.dataset.series){editing=null;openSeries(D.series.find(x=>x.id===tg.dataset.series))}
+  else if(tg.dataset.dup){const[type,ref]=tg.dataset.dup.split("|");editing={type,k,ref,mode:"copy"};render()}
 });
 $("#board").addEventListener("keydown",e=>{
   if(e.key!=="Enter"||!e.target.dataset.add)return;const sec=e.target.closest(".day");
@@ -199,7 +214,7 @@ $("#board").addEventListener("keydown",e=>{
 /* weekly to-do */
 $("#todo").addEventListener("change",e=>{if(e.target.dataset.td!=null){D.todo[key(view)][+e.target.dataset.td].d=e.target.checked;render()}});
 $("#todo").addEventListener("click",e=>{if(e.target.dataset.tdel!=null){D.todo[key(view)].splice(+e.target.dataset.tdel,1);render()}});
-$("#todo").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="addTodo"&&e.target.value.trim()){D.todo[key(view)].push({t:e.target.value.trim(),d:false});render()}});
+$("#todo").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="addTodo"&&e.target.value.trim()){todoOf().push({t:e.target.value.trim(),d:false});render()}});
 
 /* habits */
 $("#habits").addEventListener("change",e=>{
@@ -316,17 +331,28 @@ $("#sSave").onclick=()=>{
 };
 
 /* ---------- PDF export (print dialog → "Save as PDF") ---------- */
-function weeksFor(){
-  if(document.querySelector("input[name=xr]:checked").value==="this")return[view];
+const xMode=()=>document.querySelector("input[name=xm]:checked").value;
+function unitsFor(){
+  const isDay=xMode()==="day";
+  if(document.querySelector("input[name=xr]:checked").value==="this")return[isDay?parseKey(sel):view];
   let a=$("#xFrom").value,b=$("#xTo").value;if(!a||!b)return[];if(b<a)[a,b]=[b,a];
-  const out=[];for(let w=startOf(parseKey(a),S.weekStart),last=startOf(parseKey(b),S.weekStart);w<=last&&out.length<60;w=addDays(w,7))out.push(w);
+  const out=[];
+  if(isDay){for(let d=parseKey(a),last=parseKey(b);d<=last&&out.length<62;d=addDays(d,1))out.push(d)}
+  else for(let w=startOf(parseKey(a),S.weekStart),last=startOf(parseKey(b),S.weekStart);w<=last&&out.length<60;w=addDays(w,7))out.push(w);
   return out;
 }
-function updateExportInfo(){
-  const n=weeksFor().length,any=$("#xEv").checked||$("#xTk").checked||$("#xHb").checked||$("#xTd").checked;
-  $("#xCount").textContent=n?`${n} week${n>1?"s":""} → ${n} page${n>1?"s":""} (landscape A4)`:"Pick a start and end date.";
+function syncExportForm(){
+  const isDay=xMode()==="day";
+  $("#xWhich").textContent=isDay?"Which days?":"Which weeks?";
+  $("#xThisLbl").textContent=isDay?"The day I’m looking at":"The week I’m looking at";
+  $("#xThis").textContent=isDay?fmtLong(parseKey(sel)):fmtLong(view)+" – "+fmtLong(addDays(view,6));
+  $("#xRangeLbl").textContent=isDay?"Selected days":"Selected weeks";
+  $("#xTdRow").style.display=isDay?"none":"";
+  const n=unitsFor().length,any=$("#xEv").checked||$("#xTk").checked||$("#xHb").checked||(!isDay&&$("#xTd").checked);
+  $("#xCount").textContent=n?`${n} ${isDay?"day":"week"}${n>1?"s":""} → ${n} page${n>1?"s":""} (landscape A4)`:"Pick a start and end date.";
   $("#xGo").disabled=!n||!any;
 }
+function resetRange(){const k=xMode()==="day"?sel:key(view);$("#xFrom").value=k;$("#xTo").value=k}
 function printWeek(ws,o){
   const days=Array.from({length:7},(_,i)=>addDays(ws,i));
   const cols=days.map(d=>{
@@ -348,16 +374,22 @@ function printWeek(ws,o){
   }
   return `<section class="pp"><header><b>${esc(S.lblBanner)}</b><span>${fmtLong(ws)} – ${fmtLong(addDays(ws,6))}</span></header><div class="pgrid">${cols}</div>${bottom?`<div class="pbottom">${bottom}</div>`:""}</section>`;
 }
-function fillPrint(){
-  const o={ev:$("#xEv").checked,tk:$("#xTk").checked,hb:$("#xHb").checked,td:$("#xTd").checked};
-  $("#printRoot").innerHTML=weeksFor().map(w=>printWeek(w,o)).join("");
+function printDay(d,o){
+  const k=key(d),dd=peek(k),wd=d.getDay(),c=S.colors[wd];
+  let left="",right="";
+  if(o.ev){const evs=dayEvents(k);left+=`<div class="ds">${esc(S.lblEvents)}</div>`+(evs.length?evs.map(e=>`<div class="de"><b>${esc(e.time)||"all day"}</b><span>${esc(e.t)}${e.src==="s"?" ↻":""}</span></div>`).join(""):'<div class="dn">–</div>')}
+  if(o.hb&&D.habits.length){const log=D.hlog[k]||{};left+=`<div class="ds">Habits</div>`+D.habits.map(h=>`<div class="dt ${log[h.id]?"d":""}"><i>${log[h.id]?"✓":""}</i><span>${esc(h.name)}</span></div>`).join("")}
+  if(o.tk){const p=pct(dd.tasks);right+=`<div class="ds">${esc(S.lblTasks)}${p==null?"":" · "+p+"%"}</div>`+dd.tasks.map(t=>`<div class="dt ${t.d?"d":""}"><i>${t.d?"✓":""}</i><span>${esc(t.t)}</span></div>`).join("")+Array.from({length:Math.max(0,12-dd.tasks.length)},()=>'<div class="dt blank"><i></i><span></span></div>').join("")}
+  return `<section class="pp dayp" style="--c:${c}"><div class="dhd"><b>${esc(S.emoji[wd]||"")} ${DAYN[wd]}</b><span>${fmtLong(d)}</span></div>${dd.focus?`<div class="dfocus"><small>${esc(S.lblFocus)}</small> ${esc(dd.focus)}</div>`:""}<div class="dgrid ${left&&right?"":"one"}">${left?`<div class="dl">${left}</div>`:""}${right?`<div class="dr">${right}</div>`:""}</div><div class="dfoot">${esc(S.lblBanner)}</div></section>`;
 }
-$("#exportBtn").onclick=()=>{
-  $("#xThis").textContent=fmtLong(view)+" – "+fmtLong(addDays(view,6));
-  $("#xFrom").value=key(view);$("#xTo").value=key(view);updateExportInfo();$("#dlgExport").showModal();
-};
-$("#dlgExport").addEventListener("input",updateExportInfo);
-$("#dlgExport").addEventListener("change",updateExportInfo);
+function fillPrint(){
+  const o={ev:$("#xEv").checked,tk:$("#xTk").checked,hb:$("#xHb").checked,td:$("#xTd").checked},isDay=xMode()==="day";
+  $("#printRoot").innerHTML=unitsFor().map(u=>isDay?printDay(u,o):printWeek(u,o)).join("");
+}
+$("#exportBtn").onclick=()=>{resetRange();syncExportForm();$("#dlgExport").showModal()};
+document.querySelectorAll("input[name=xm]").forEach(r=>r.addEventListener("change",resetRange));
+$("#dlgExport").addEventListener("input",syncExportForm);
+$("#dlgExport").addEventListener("change",syncExportForm);
 $("#xCancel").onclick=()=>$("#dlgExport").close();
 $("#xGo").onclick=()=>{fillPrint();$("#dlgExport").close();setTimeout(()=>window.print(),150)};
 window.addEventListener("afterprint",()=>{$("#printRoot").innerHTML=""});
@@ -370,7 +402,7 @@ function buildDlg(){
   $("#wsSel").innerHTML=DAYN.map((n,i)=>`<option value="${i}" ${S.weekStart===i?"selected":""}>${n}</option>`).join("");
   $("#lblBanner").value=S.lblBanner;$("#lblFocus").value=S.lblFocus;$("#lblEvents").value=S.lblEvents;$("#lblTasks").value=S.lblTasks;
 }
-$("#cust").onclick=()=>{buildDlg();$("#bkMsg").textContent="";$("#dlg").showModal()};
+$("#cust").onclick=()=>{buildDlg();$("#dlg").showModal()};
 $("#dlg").addEventListener("click",e=>{const t=e.target.closest("[data-th]");if(t){S.theme=t.dataset.th;S.colors=THEMES[S.theme].colors.slice();render();buildDlg()}});
 $("#dlg").addEventListener("input",e=>{
   const t=e.target;
@@ -379,28 +411,155 @@ $("#dlg").addEventListener("input",e=>{
   if(t.id==="lblBanner")S.lblBanner=t.value;if(t.id==="lblFocus")S.lblFocus=t.value;
   if(t.id==="lblEvents")S.lblEvents=t.value;if(t.id==="lblTasks")S.lblTasks=t.value;
   if(t.id==="wsSel"){S.weekStart=+t.value;view=startOf(parseKey(sel),S.weekStart);mini=new Date(view.getFullYear(),view.getMonth(),1)}
-  if(t.id==="bkFile")return;
   render();
 });
-$("#bkSave").onclick=()=>{
-  const blob=new Blob([JSON.stringify({app:"hedgehog",version:1,saved:new Date().toISOString(),settings:S,data:D},null,1)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hedgehog-backup-"+key(new Date())+".json";
+
+/* ---------- planner file (.hdg) ----------
+   Chrome/Edge: she picks a .hdg file once; every change is written to it automatically.
+   Safari can't write files by itself, so there the app keeps saving in the browser and
+   offers a one-click "Backup" copy instead. */
+const FS_OK=!!(window.showSaveFilePicker&&window.showOpenFilePicker);
+const HDG_TYPES=[{description:"Hedgehog planner",accept:{"application/x-hedgehog":[".hdg"]}}];
+let fileHandle=null,fileState=FS_OK?"none":"local",fileTimer=null,lastWrite=0;   // none | saving | ok | needs | error | local
+const hasContent=()=>D.series.length||D.habits.length||Object.values(D.days).some(d=>d.events.length||d.tasks.length||d.focus);
+const lastCopy=()=>{try{return +localStorage.getItem("hedgehog.lastCopy")||0}catch(e){return 0}};
+const backupDue=()=>hasContent()&&Date.now()-lastCopy()>14*864e5;
+
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("hedgehog",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbGet(k){try{const db=await idb();return await new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return null}}
+async function idbSet(k,v){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+async function perm(h,ask){
+  if(!h.queryPermission)return true;
+  const o={mode:"readwrite"};
+  if(await h.queryPermission(o)==="granted")return true;
+  return !!ask&&(await h.requestPermission(o))==="granted";
+}
+function setFileState(s){fileState=s;renderChip();if($("#dlgFile").open)renderFileDlg()}
+function renderChip(){
+  const c=$("#fileChip"),name=fileHandle?fileHandle.name:"";
+  const m={ok:["✓ Saved","ok","Saved in "+name],saving:["Saving…","ok","Saving…"],needs:["⚠ Reconnect file","warn","Click to let Hedgehog save to "+name+" again"],
+    error:["⚠ Can’t save to file","warn","Click for help"],none:["💾 Choose a file","warn","Choose where Hedgehog keeps your planner"]};
+  const v=m[fileState]||(backupDue()?["⚠ Back up now","warn","Save a backup copy of your planner"]:["✓ Saved on this Mac","ok","Everything is saved automatically in this browser"]);
+  c.textContent=v[0];c.className="chip2 "+v[1];c.title=v[2];
+}
+function scheduleFileWrite(){if(!fileHandle)return;setFileState("saving");clearTimeout(fileTimer);fileTimer=setTimeout(()=>writeFile(false),500)}
+async function writeFile(ask){
+  if(!fileHandle)return false;
+  clearTimeout(fileTimer);
+  try{
+    if(!await perm(fileHandle,ask)){setFileState("needs");return false}
+    const w=await fileHandle.createWritable();await w.write(JSON.stringify(payload(),null,1));await w.close();
+    lastWrite=Date.now();setFileState("ok");return true;
+  }catch(e){setFileState("error");return false}
+}
+async function readFile(h){return JSON.parse(await (await h.getFile()).text())}
+function checkPayload(j){if(!j||j.app!=="hedgehog"||!j.data||!j.data.days)throw new Error("not a Hedgehog file");return j}
+function applyPayload(j){
+  checkPayload(j);
+  S=Object.assign({},DEFAULT_S,j.settings);D=j.data;fixData();editing=null;
+  savedAt=j.saved?Date.parse(j.saved)||Date.now():Date.now();lastSer=JSON.stringify({S,D});persistLocal();
+  view=startOf(new Date(),S.weekStart);sel=key(new Date());mini=new Date(view.getFullYear(),view.getMonth(),1);
+  render();
+}
+async function linkHandle(h,takeFile){
+  fileHandle=h;await idbSet("file",h);
+  if(takeFile)applyPayload(await readFile(h));else await writeFile(true);
+  setFileState(fileState==="error"||fileState==="needs"?fileState:"ok");
+}
+async function syncFromFile(){
+  try{
+    const j=checkPayload(await readFile(fileHandle)),fsaved=Date.parse(j.saved)||0;
+    if(fsaved>savedAt+1000)applyPayload(j);            // file is newer (edited elsewhere / restored)
+    else if(savedAt>fsaved+1000)await writeFile(false); // browser copy is newer → bring the file up to date
+    setFileState("ok");
+  }catch(e){setFileState("error")}
+}
+async function createFile(){
+  try{const h=await showSaveFilePicker({suggestedName:"Hedgehog.hdg",types:HDG_TYPES,excludeAcceptAllOption:true});await linkHandle(h,false);fMsg("Done — your planner now saves itself into "+h.name+".")}
+  catch(e){if(e.name!=="AbortError")fMsg("That didn’t work: "+e.message)}
+}
+async function openFile(){
+  try{
+    const[h]=await showOpenFilePicker({types:HDG_TYPES,excludeAcceptAllOption:true});
+    const j=checkPayload(await readFile(h));
+    if(hasContent()&&!confirm("Open “"+h.name+"”? What is on screen now will be replaced by the file’s contents."))return;
+    fileHandle=h;await idbSet("file",h);applyPayload(j);setFileState("ok");fMsg("Opened "+h.name+". It saves itself from now on.");
+  }catch(e){if(e.name!=="AbortError")fMsg(e.message==="not a Hedgehog file"?"That isn’t a Hedgehog file.":"That didn’t work: "+e.message)}
+}
+async function reconnect(){
+  if(!fileHandle)return false;
+  try{if(await perm(fileHandle,true)){await syncFromFile();return fileState==="ok"}}catch(e){}
+  setFileState("needs");return false;
+}
+function downloadCopy(){
+  const blob=new Blob([JSON.stringify(payload(),null,1)],{type:"application/x-hedgehog"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Hedgehog-"+key(new Date())+".hdg";
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  $("#bkMsg").textContent="Backup saved to your Downloads folder.";
-};
-$("#bkFile").addEventListener("change",async e=>{
+  try{localStorage.setItem("hedgehog.lastCopy",String(Date.now()))}catch(e){}
+  renderChip();fMsg("Backup saved: Hedgehog-"+key(new Date())+".hdg (look in your Downloads folder).");
+}
+function fMsg(t){$("#fMsg").textContent=t}
+function renderFileDlg(){
+  let h="";
+  if(!FS_OK){
+    h=`<p>Your planner saves itself in this browser after every change. For extra safety, save a <b>backup copy</b> now and then (for example into iCloud Drive).</p>
+       <p class="dim">${lastCopy()?"Last backup: "+new Date(lastCopy()).toLocaleDateString():"No backup copy yet."}</p>`;
+  }else if(fileHandle&&(fileState==="ok"||fileState==="saving")){
+    h=`<p class="big">✓ Saved in <b>${esc(fileHandle.name)}</b></p><p class="dim">Every change is saved into this file by itself${lastWrite?" (last at "+new Date(lastWrite).toTimeString().slice(0,5)+")":""}. Nothing to do.</p>
+       <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="now" type="button">Save now</button><button class="iconbtn" data-f="open" type="button">Open another file…</button><button class="iconbtn" data-f="create" type="button">Save as a new file…</button></div>`;
+  }else if(fileHandle){
+    h=`<p class="big">⚠ Hedgehog needs your permission to save into <b>${esc(fileHandle.name)}</b> again.</p>
+       <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn primary" data-f="reconnect" type="button">Reconnect</button><button class="iconbtn" data-f="open" type="button">Open another file…</button><button class="iconbtn" data-f="create" type="button">Choose a new file…</button></div>`;
+  }else{
+    h=`<p>Keep your planner in a file you can see — like <b>Hedgehog.hdg</b> in Documents or iCloud Drive. It then saves itself after every change.</p>
+       <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn primary" data-f="create" type="button">Create my planner file…</button><button class="iconbtn" data-f="open" type="button">I already have one…</button></div>`;
+  }
+  h+=`<hr><b>Backup &amp; restore</b><div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="backup" type="button">⬇ Backup</button><label class="iconbtn" style="cursor:pointer">⬆ Restore<input type="file" id="bkFile" accept=".hdg,.json,application/json" hidden></label></div>`;
+  $("#fBody").innerHTML=h;
+}
+$("#fBody").addEventListener("click",async e=>{
+  const a=e.target.dataset.f;if(!a)return;
+  if(a==="create")await createFile();
+  else if(a==="open")await openFile();
+  else if(a==="now"){await writeFile(true);fMsg(fileState==="ok"?"Saved.":"Couldn’t save — try Reconnect.")}
+  else if(a==="reconnect"){fMsg((await reconnect())?"Reconnected.":"Not reconnected — click Reconnect and choose Allow.")}
+  else if(a==="backup")downloadCopy();
+  renderFileDlg();
+});
+$("#fBody").addEventListener("change",async e=>{
+  if(e.target.id!=="bkFile")return;
   const f=e.target.files[0];e.target.value="";if(!f)return;
   try{
-    const j=JSON.parse(await f.text());
-    if(j.app!=="hedgehog"||!j.data||!j.data.days)throw new Error("not a Hedgehog backup");
+    const j=checkPayload(JSON.parse(await f.text()));
     if(!confirm("Replace everything in the app with the backup from "+(j.saved||"").slice(0,10)+"?"))return;
-    S=Object.assign({},DEFAULT_S,j.settings);D=j.data;fixData();editing=null;
-    view=startOf(new Date(),S.weekStart);sel=key(new Date());mini=new Date(view.getFullYear(),view.getMonth(),1);
-    render();buildDlg();$("#bkMsg").textContent="Backup restored.";
-  }catch(err){$("#bkMsg").textContent="That file isn't a Hedgehog backup.";}
+    applyPayload(j);if(fileHandle)await writeFile(true);fMsg("Backup restored.");
+  }catch(err){fMsg("That file isn’t a Hedgehog backup.")}
 });
+$("#fileChip").onclick=async()=>{
+  if(fileState==="needs"&&await reconnect())return;
+  fMsg("");renderFileDlg();$("#dlgFile").showModal();
+};
+$("#fClose").onclick=()=>$("#dlgFile").close();
+document.addEventListener("keydown",e=>{               // ⌘S / Ctrl+S
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="s"){e.preventDefault();
+    if(fileHandle)writeFile(true);else if(!FS_OK)downloadCopy();else $("#fileChip").click()}
+});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&fileTimer)writeFile(false)});
+async function initFile(){
+  if(window.launchQueue)launchQueue.setConsumer(async p=>{            // double-clicking a .hdg file opens it here
+    if(!p.files||!p.files.length)return;
+    try{await linkHandle(p.files[0],true)}catch(e){fMsg("That file couldn’t be opened.")}
+  });
+  renderChip();
+  if(!FS_OK)return;
+  const h=await idbGet("file");if(!h)return;
+  fileHandle=h;
+  if(!await perm(h,false)){setFileState("needs");return}
+  await syncFromFile();
+}
 
 render();
+initFile();
 
 /* installable + works offline */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
