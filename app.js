@@ -130,7 +130,7 @@ function render(){
   const td=D.todo[key(view)]||[];
   $("#todo").innerHTML=td.map((t,j)=>isEd("td","",j)?`<div class="task edit" style="--c:#cfc9bb"><input class="ed" value="${esc(t.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button></div>`:`<div class="task ${t.d?"done":""}"><input type="checkbox" data-td="${j}" ${t.d?"checked":""}><span class="t" data-edit="td" data-ref="${j}">${esc(t.t)}</span><button class="x" data-tdel="${j}" type="button">✕</button></div>`).join("")+`<input class="add" id="addTodo" style="--c:#cfc9bb" placeholder="+ add to weekly to-do">`;
   const tp=pct(td);$("#tdBar").style.width=(tp||0)+"%";$("#tdPct").textContent=tp==null?"–":tp+"%";
-  renderHabits();renderCal();save();
+  renderHabits();renderCal();save();renderChip();
   const ed=document.querySelector(".ed");if(ed&&editing&&!document.activeElement.classList.contains("ed")){ed.focus();ed.select()}
 }
 function renderHabits(){
@@ -423,7 +423,10 @@ const HDG_TYPES=[{description:"Hedgehog planner",accept:{"application/x-hedgehog
 let fileHandle=null,fileState=FS_OK?"none":"local",fileTimer=null,lastWrite=0;   // none | saving | ok | needs | error | local
 const hasContent=()=>D.series.length||D.habits.length||Object.values(D.days).some(d=>d.events.length||d.tasks.length||d.focus);
 const lastCopy=()=>{try{return +localStorage.getItem("hedgehog.lastCopy")||0}catch(e){return 0}};
-const backupDue=()=>hasContent()&&Date.now()-lastCopy()>14*864e5;
+let isBrave=false;
+const firstUse=()=>{try{let v=+localStorage.getItem("hedgehog.firstUse")||0;if(!v&&hasContent()){v=Date.now();localStorage.setItem("hedgehog.firstUse",String(v))}return v}catch(e){return 0}};
+/* nudge to make a backup copy: 3 days after she starts using it, then every 2 weeks */
+const backupDue=()=>{if(!hasContent())return false;const lc=lastCopy(),base=lc||firstUse();return !!base&&Date.now()-base>(lc?14:3)*864e5};
 
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("hedgehog",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function idbGet(k){try{const db=await idb();return await new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return null}}
@@ -504,6 +507,8 @@ function renderFileDlg(){
   if(!FS_OK){
     h=`<p>Your planner saves itself in this browser after every change. For extra safety, save a <b>backup copy</b> now and then (for example into iCloud Drive).</p>
        <p class="dim">${lastCopy()?"Last backup: "+new Date(lastCopy()).toLocaleDateString():"No backup copy yet."}</p>`;
+    if(isBrave)h+=`<details class="tip"><summary>Brave: turn on fully automatic file saving (one time)</summary>
+       <ol><li>Open a new tab and type <b>brave://flags</b></li><li>Search for <b>File System Access API</b></li><li>Set it to <b>Enabled</b> and click <b>Relaunch</b></li><li>Come back here and choose <b>Create my planner file</b></li></ol></details>`;
   }else if(fileHandle&&(fileState==="ok"||fileState==="saving")){
     h=`<p class="big">✓ Saved in <b>${esc(fileHandle.name)}</b></p><p class="dim">Every change is saved into this file by itself${lastWrite?" (last at "+new Date(lastWrite).toTimeString().slice(0,5)+")":""}. Nothing to do.</p>
        <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="now" type="button">Save now</button><button class="iconbtn" data-f="open" type="button">Open another file…</button><button class="iconbtn" data-f="create" type="button">Save as a new file…</button></div>`;
@@ -546,6 +551,8 @@ document.addEventListener("keydown",e=>{               // ⌘S / Ctrl+S
 });
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&fileTimer)writeFile(false)});
 async function initFile(){
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});   // ask the browser never to evict our data
+  if(navigator.brave&&navigator.brave.isBrave)navigator.brave.isBrave().then(v=>{isBrave=!!v}).catch(()=>{});
   if(window.launchQueue)launchQueue.setConsumer(async p=>{            // double-clicking a .hdg file opens it here
     if(!p.files||!p.files.length)return;
     try{await linkHandle(p.files[0],true)}catch(e){fMsg("That file couldn’t be opened.")}

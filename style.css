@@ -227,3 +227,7 @@ body.dark .chip2.ok{color:#9fd8ae}
   .dn{color:#aaa;text-align:center;padding:2mm}
   .dfoot{text-align:center;letter-spacing:.4em;font-size:8pt;color:#aaa;margin-top:4mm}
 }
+
+.tip{margin:8px 0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+.tip summary{cursor:pointer;font-weight:600}
+.tip ol{margin:6px 0 2px;padding-left:20px}
