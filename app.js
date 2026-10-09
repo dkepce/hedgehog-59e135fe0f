@@ -6,7 +6,15 @@ const THEMES={
   pastel:{name:"Pastel rainbow",dark:false,colors:["#dccbe3","#b9d6dc","#c4e6c8","#eadc8e","#f6c7a0","#f7b2a6","#f3adb9"]},
   lavender:{name:"Lavender",dark:false,colors:["#d8cdf0","#cdd6f5","#d6e9f7","#e4d3f2","#e9c9ee","#f3c9e3","#d1c4ea"]},
   sage:{name:"Sage",dark:false,colors:["#d6e2c8","#c5dcc9","#bcd9d3","#e2e6bc","#d9d0b4","#ebd5b8","#cfe3d8"]},
-  night:{name:"Night",dark:true,colors:["#a995d6","#7fb2c6","#86c9a4","#d9c36a","#e3a574","#e58f8f","#d98fb3"]}
+  night:{name:"Night",dark:true,colors:["#a995d6","#7fb2c6","#86c9a4","#d9c36a","#e3a574","#e58f8f","#d98fb3"]},
+  ocean:{name:"Ocean",dark:false,colors:["#c3dcef","#b5e0e6","#bfe7d9","#cfe4f7","#c9d3f0","#b7d7e8","#d3e6ee"]},
+  sunset:{name:"Sunset",dark:false,colors:["#f9d3b4","#f8c3a6","#f6b3a8","#f4bcc8","#f9dfa5","#f7c9a0","#eebfd0"]},
+  candy:{name:"Cotton candy",dark:false,colors:["#f9c6de","#c9e4f9","#d5f0d0","#fbe9b0","#e3d1f5","#fcd0c0","#bfeee6"]},
+  berry:{name:"Berry",dark:false,colors:["#e6c1d8","#d9c0e6","#f0bfc9","#c9c3ea","#eec0dc","#f5c8d0","#d6bfe0"]},
+  autumn:{name:"Autumn",dark:false,colors:["#e6cfae","#d9d2a0","#c6d3a8","#e8bf9e","#d8b9a5","#cdbfa3","#e3c98f"]},
+  slate:{name:"Slate",dark:false,colors:["#d9dde3","#cfd6dd","#dcdad5","#d3d8d6","#dcd5d0","#d5d9e0","#e0dde4"]},
+  midnight:{name:"Midnight",dark:true,colors:["#7ea6e0","#6fc1d4","#7dd3b0","#e0c878","#e6a67a","#e68f9a","#b496e0"]},
+  forest:{name:"Forest",dark:true,colors:["#8fc08a","#6fb8a0","#a8c97a","#d6c473","#d9a36a","#c98a7a","#9bb5a0"]}
 };
 const DEF_EMOJI=["🌸","🌿","🍀","☀️","🧺","🎈","🌙"];
 const DEFAULT_S={theme:"pastel",colors:THEMES.pastel.colors.slice(),emoji:DEF_EMOJI.slice(),weekStart:1,
