@@ -1,0 +1,107 @@
+:root{
+  --bg:#fbf6ec; --card:#fffdf8; --ink:#3a3a3a; --muted:#8a8478; --line:#e6dfd0; --side:#ffffff; --banner:#a9cdd2;
+  --cols:7;
+}
+body.dark{ --bg:#1f1d24; --card:#2a2832; --ink:#ece9f2; --muted:#9a96a8; --line:#3d3a48; --side:#25232c; --banner:#4b6a73; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.35 "Segoe UI",system-ui,-apple-system,sans-serif}
+button,input,select{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:288px 1fr;height:100vh;height:100dvh}
+aside{background:var(--side);padding:18px 16px;overflow:auto;border-right:1px solid var(--line)}
+main{display:flex;flex-direction:column;min-width:0;height:100vh;height:100dvh}
+.banner{background:var(--banner);color:#fff;text-align:center;letter-spacing:.35em;font-weight:600;padding:26px 8px;border-radius:6px;margin-bottom:14px}
+.pill{background:#f5b7b7;border-radius:4px;text-align:center;padding:6px;margin-bottom:6px;font-size:12px}
+.pill b{display:block;font-size:11px;letter-spacing:.2em}
+.mini{margin:14px 0}
+.mini-head{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+.mini-head select{flex:1;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:4px}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 10px;cursor:pointer}
+.iconbtn:hover{filter:brightness(.96)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:12px}
+.cal .dow{color:var(--muted);font-size:10px;letter-spacing:.1em;padding:2px 0}
+.cal button{border:0;background:none;border-radius:50%;aspect-ratio:1;cursor:pointer}
+.cal button.out{color:var(--muted);opacity:.5}
+.cal button.inweek{background:#f7d9cf;border-radius:4px}
+body.dark .cal button.inweek{background:#4a3a44}
+.cal button.today{outline:2px solid #e98f8f}
+.cal button:hover{background:#ece3d0}
+h4{letter-spacing:.25em;font-size:11px;margin:18px 0 8px;text-transform:uppercase}
+.bar{height:22px;background:var(--line);border-radius:4px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;background:#e8d98e;transition:width .3s}
+.barrow{display:flex;align-items:center;gap:10px}.barrow .bar{flex:1}.barrow b{min-width:48px;text-align:right}
+.topbar{display:flex;align-items:center;gap:8px;padding:12px 16px;flex-wrap:wrap;touch-action:pan-y}
+.topbar h2{margin:0;font-size:16px;letter-spacing:.12em;flex:1;min-width:140px}
+.topbar .menu{display:none}
+.board{flex:1;overflow-x:auto;overflow-y:auto;display:flex;gap:2px;padding:0 16px 16px;scroll-snap-type:x mandatory}
+.day{flex:0 0 calc((100% - (var(--cols) - 1) * 2px) / var(--cols));min-width:150px;scroll-snap-align:start;background:var(--card);border-right:1px dashed var(--line);display:flex;flex-direction:column}
+.day.today .dh{box-shadow:inset 0 -3px 0 #e98f8f}
+.day.sel{background:color-mix(in srgb,var(--c) 14%,var(--card));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--c) 100%,black 18%)}
+.cal button.sel{background:#e98f8f;color:#fff}
+.addev{display:flex;flex-wrap:wrap;gap:3px;padding:4px 6px;border-bottom:1px dotted var(--line);align-items:center}
+.addev select,.addev input{border:1px solid var(--line);background:var(--card);border-radius:5px;padding:2px;font-size:12px;min-width:0}
+.addev input{flex:1 1 70px}
+.addev button{border:0;background:color-mix(in srgb,var(--c) 100%,black 10%);color:#fff;border-radius:5px;cursor:pointer;padding:2px 8px}
+.dh{background:var(--c);text-align:center;padding:10px 4px 2px;letter-spacing:.3em;font-weight:700;font-size:12px;text-transform:uppercase;color:#4a3f3f}
+.dd{background:color-mix(in srgb,var(--c) 55%,white);text-align:center;font-weight:600;padding:5px;font-size:12px;color:#4a3f3f}
+body.dark .dh,body.dark .dd{color:#201d25}
+.focus{padding:10px 8px 14px;text-align:center}
+.focus small{display:block;font-style:italic;color:var(--muted);margin-bottom:4px}
+.focus input{width:100%;border:0;background:none;text-align:center;font-weight:600;padding:2px}
+.sec{background:color-mix(in srgb,var(--c) 40%,white);text-align:center;letter-spacing:.3em;font-size:11px;padding:4px;font-weight:600;text-transform:uppercase;color:#4a3f3f}
+body.dark .sec{background:color-mix(in srgb,var(--c) 55%,#2a2832);color:#201d25}
+.ev{display:flex;gap:6px;padding:3px 8px;font-size:12px;border-bottom:1px dotted var(--line)}
+.ev span{color:var(--muted);white-space:nowrap}
+.ev .x,.task .x{margin-left:auto;opacity:0;cursor:pointer;border:0;background:none;color:var(--muted)}
+.ev:hover .x,.task:hover .x{opacity:1}
+.add{width:100%;border:0;border-bottom:1px dotted var(--line);background:none;padding:4px 8px;font-size:12px;color:var(--muted)}
+.add:focus{outline:none;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--ink)}
+.prog{padding:4px 6px}
+.prog .bar{height:14px;background:color-mix(in srgb,var(--c) 30%,var(--card))}
+.prog .bar i{background:color-mix(in srgb,var(--c) 100%,black 15%)}
+.prog .bar em{position:absolute;right:6px;top:-1px;font-size:10px;font-style:normal}
+.task{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px dotted var(--line)}
+.task input[type=checkbox]{appearance:none;width:15px;height:15px;border:1.5px solid var(--muted);border-radius:3px;flex:none;cursor:pointer;display:grid;place-items:center;background:var(--card)}
+.task input[type=checkbox]:checked{background:color-mix(in srgb,var(--c) 100%,black 18%);border-color:transparent}
+.task input[type=checkbox]:checked::after{content:"✓";font-size:11px;color:#fff;line-height:1}
+.task.done span.t{text-decoration:line-through;color:var(--muted)}
+.todo .task{--c:#cfc9bb}
+.dim{color:var(--muted);font-size:12px}
+.t,[data-edit]{cursor:pointer}
+.day.over{outline:2px dashed color-mix(in srgb,var(--c) 100%,black 25%);outline-offset:-2px}
+[draggable=true]{cursor:grab}
+.edit{flex-wrap:wrap;gap:4px;background:color-mix(in srgb,var(--c) 22%,var(--card));padding:6px}
+.ev.edit{display:flex;align-items:center}
+.edit input.ed{flex:1 1 90px;min-width:0;border:1px solid var(--line);border-radius:5px;padding:3px 5px;background:var(--card)}
+.edit select{border:1px solid var(--line);border-radius:5px;background:var(--card);padding:2px;font-size:12px;min-width:0}
+.edit .row2{display:flex;gap:4px;width:100%;align-items:center}
+.edit .row2 select.mv{flex:1}
+.edit .ok{border:0;background:color-mix(in srgb,var(--c) 100%,black 15%);color:#fff;border-radius:5px;padding:3px 9px;cursor:pointer}
+.edit .no{border:0;background:none;cursor:pointer;color:var(--muted)}
+dialog{border:0;border-radius:14px;padding:20px;max-width:460px;width:92%;background:var(--card);color:var(--ink);box-shadow:0 10px 40px #0004}
+dialog::backdrop{background:#0006}
+.themes{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+.theme{border:2px solid transparent;border-radius:10px;padding:6px;cursor:pointer;background:var(--bg)}
+.theme.on{border-color:#e98f8f}
+.theme div{display:flex;gap:2px;margin-bottom:4px}.theme div i{width:14px;height:14px;border-radius:3px}
+.row{display:grid;grid-template-columns:70px 44px 1fr;gap:8px;align-items:center;margin:5px 0}
+.row input[type=color]{width:40px;height:30px;border:0;padding:0;background:none}
+.row input[type=text],.f input,.f select{border:1px solid var(--line);border-radius:6px;padding:5px;background:var(--bg);width:100%}
+.f{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;margin:6px 0}
+.hint{background:#fff4c9;color:#5c4b00;border-radius:8px;padding:6px 10px;font-size:12px;margin:0 16px 8px}
+@media (max-width:1250px){:root{--cols:5}}
+@media (max-width:1000px){:root{--cols:3}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  aside{position:fixed;inset:0 25% 0 0;z-index:5;transform:translateX(-105%);transition:transform .25s;box-shadow:4px 0 20px #0003}
+  aside.open{transform:none}
+  .topbar .menu{display:inline-block}
+}
+@media (max-width:640px){:root{--cols:1}}
+/* iOS standalone: keep content out of the notch / home bar */
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.app{height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+main{height:100%}
+html{-webkit-text-size-adjust:100%}
+@media (pointer:coarse){input,select{font-size:16px}} /* stops iPad Safari from zooming in when a field is focused */
+
