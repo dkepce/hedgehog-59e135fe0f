@@ -57,6 +57,9 @@ const todoOf=()=>D.todo[key(view)]||(D.todo[key(view)]=[]);
 function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
 
 /* ---------- repeating events ---------- */
+/* Kalenderwoche (ISO 8601): week 1 is the week with the first Thursday of the year */
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
+  return Math.ceil(((t-Date.UTC(t.getUTCFullYear(),0,1))/864e5+1)/7)}
 function lastDom(d){return new Date(d.getFullYear(),d.getMonth()+1,0).getDate()}
 function occurs(s,k){
   if(k<s.start||(s.until&&k>s.until)||s.skip.includes(k))return false;
@@ -107,7 +110,7 @@ function evRow(e,k){
 function render(){
   document.body.classList.toggle("dark",THEMES[S.theme]?.dark||false);
   const end=addDays(view,6);
-  $("#title").textContent=fmtLong(view).toUpperCase()+" – "+fmtLong(end).toUpperCase();
+  $("#title").innerHTML=`<span class="kw" title="Kalenderwoche">KW ${isoWeek(addDays(view,3))}</span> `+esc(fmtLong(view).toUpperCase()+" – "+fmtLong(end).toUpperCase());
   $("#wkStart").textContent=fmtLong(view);$("#wkEnd").textContent=fmtLong(end);
   $("#bannerTxt").textContent=S.lblBanner;
   const todayK=key(new Date());
@@ -152,11 +155,12 @@ function renderCal(){
   if(!msel.options.length){MONTHS.forEach((m,i)=>msel.add(new Option(m,i)));for(let y=2024;y<=2035;y++)ys.add(new Option(y,y))}
   msel.value=mini.getMonth();ys.value=mini.getFullYear();
   const first=startOf(mini,S.weekStart),wsK=key(view),weK=key(addDays(view,6)),tk=key(new Date());
-  let h=Array.from({length:7},(_,i)=>`<div class="dow">${DAYN[(S.weekStart+i)%7][0]}</div>`).join("");
+  let h='<div class="dow kwh">KW</div>'+Array.from({length:7},(_,i)=>`<div class="dow">${DAYN[(S.weekStart+i)%7][0]}</div>`).join("");
   for(let i=0;i<42;i++){const d=addDays(first,i),k=key(d);
+    if(i%7===0){const kw=isoWeek(addDays(d,3));h+=`<button class="kwn ${k===wsK?"inweek":""}" data-d="${k}" title="Go to KW ${kw}">${kw}</button>`}
     h+=`<button data-d="${k}" class="${d.getMonth()!==mini.getMonth()?"out ":""}${k>=wsK&&k<=weK?"inweek ":""}${k===tk?"today ":""}${k===sel?"sel":""}">${d.getDate()}</button>`}
   $("#cal").innerHTML=h;
-  $("#side").style.setProperty("--ac",S.colors[parseKey(sel).getDay()]);   // calendar takes the active day's color
+  $("#side").style.setProperty("--ac",S.colors[parseKey(sel).getDay()]);document.documentElement.style.setProperty("--ac",S.colors[parseKey(sel).getDay()]);   // calendar takes the active day's color
 }
 function go(d){sel=key(d);view=startOf(d,S.weekStart);mini=new Date(view.getFullYear(),view.getMonth(),1);render();$("#side").classList.remove("open");
   const el=document.querySelector(".day.sel");if(el)el.scrollIntoView({inline:"nearest",block:"nearest",behavior:"smooth"})}
@@ -372,7 +376,7 @@ function printWeek(ws,o){
   if(o.td){const td=D.todo[key(ws)]||[];
     if(td.length)bottom+=`<div class="pb"><div class="ps">Weekly to-do · ${pct(td)}%</div>${td.map(t=>`<div class="pt ${t.d?"d":""}"><i>${t.d?"✓":""}</i><span>${esc(t.t)}</span></div>`).join("")}</div>`;
   }
-  return `<section class="pp"><header><b>${esc(S.lblBanner)}</b><span>${fmtLong(ws)} – ${fmtLong(addDays(ws,6))}</span></header><div class="pgrid">${cols}</div>${bottom?`<div class="pbottom">${bottom}</div>`:""}</section>`;
+  return `<section class="pp"><header><b>${esc(S.lblBanner)}</b><span>KW ${isoWeek(addDays(ws,3))} · ${fmtLong(ws)} – ${fmtLong(addDays(ws,6))}</span></header><div class="pgrid">${cols}</div>${bottom?`<div class="pbottom">${bottom}</div>`:""}</section>`;
 }
 function printDay(d,o){
   const k=key(d),dd=peek(k),wd=d.getDay(),c=S.colors[wd];
@@ -380,7 +384,7 @@ function printDay(d,o){
   if(o.ev){const evs=dayEvents(k);left+=`<div class="ds">${esc(S.lblEvents)}</div>`+(evs.length?evs.map(e=>`<div class="de"><b>${esc(e.time)||"all day"}</b><span>${esc(e.t)}${e.src==="s"?" ↻":""}</span></div>`).join(""):'<div class="dn">–</div>')}
   if(o.hb&&D.habits.length){const log=D.hlog[k]||{};left+=`<div class="ds">Habits</div>`+D.habits.map(h=>`<div class="dt ${log[h.id]?"d":""}"><i>${log[h.id]?"✓":""}</i><span>${esc(h.name)}</span></div>`).join("")}
   if(o.tk){const p=pct(dd.tasks);right+=`<div class="ds">${esc(S.lblTasks)}${p==null?"":" · "+p+"%"}</div>`+dd.tasks.map(t=>`<div class="dt ${t.d?"d":""}"><i>${t.d?"✓":""}</i><span>${esc(t.t)}</span></div>`).join("")+Array.from({length:Math.max(0,12-dd.tasks.length)},()=>'<div class="dt blank"><i></i><span></span></div>').join("")}
-  return `<section class="pp dayp" style="--c:${c}"><div class="dhd"><b>${esc(S.emoji[wd]||"")} ${DAYN[wd]}</b><span>${fmtLong(d)}</span></div>${dd.focus?`<div class="dfocus"><small>${esc(S.lblFocus)}</small> ${esc(dd.focus)}</div>`:""}<div class="dgrid ${left&&right?"":"one"}">${left?`<div class="dl">${left}</div>`:""}${right?`<div class="dr">${right}</div>`:""}</div><div class="dfoot">${esc(S.lblBanner)}</div></section>`;
+  return `<section class="pp dayp" style="--c:${c}"><div class="dhd"><b>${esc(S.emoji[wd]||"")} ${DAYN[wd]}</b><span>${fmtLong(d)} · KW ${isoWeek(d)}</span></div>${dd.focus?`<div class="dfocus"><small>${esc(S.lblFocus)}</small> ${esc(dd.focus)}</div>`:""}<div class="dgrid ${left&&right?"":"one"}">${left?`<div class="dl">${left}</div>`:""}${right?`<div class="dr">${right}</div>`:""}</div><div class="dfoot">${esc(S.lblBanner)}</div></section>`;
 }
 function fillPrint(){
   const o={ev:$("#xEv").checked,tk:$("#xTk").checked,hb:$("#xHb").checked,td:$("#xTd").checked},isDay=xMode()==="day";
