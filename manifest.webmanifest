@@ -1,6 +1,6 @@
 {
-  "name": "Weekly Plan",
-  "short_name": "Weekly Plan",
+  "name": "Hedgehog",
+  "short_name": "Hedgehog",
   "description": "A colorful weekly planner.",
   "start_url": "./",
   "scope": "./",

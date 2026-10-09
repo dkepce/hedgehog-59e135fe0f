@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Weekly Plan</title>
+<title>Hedgehog</title>
+<meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#a9cdd2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Weekly Plan">
+<meta name="apple-mobile-web-app-title" content="Hedgehog">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
   <aside id="side">
-    <div class="banner" id="bannerTxt">WEEKLY PLAN</div>
+    <div class="banner" id="bannerTxt">HEDGEHOG</div>
     <div class="pill"><b>WEEK START</b><span id="wkStart"></span></div>
     <div class="pill" style="background:#f7cfc9"><b>WEEK END</b><span id="wkEnd"></span></div>
     <div class="mini">
@@ -28,12 +29,15 @@
       </div>
       <div class="cal" id="cal"></div>
     </div>
+    <h4>Weekly habits</h4>
+    <div id="habits"></div>
+    <div class="barrow" style="margin-top:8px"><div class="bar"><i id="hbBar" style="width:0;background:#b9d6dc"></i></div><b id="hbPct">–</b></div>
     <h4>Week progress</h4>
     <div class="barrow"><div class="bar"><i id="wkBar" style="width:0"></i></div><b id="wkPct">–</b></div>
     <h4 id="todoTitle">Weekly to-do list</h4>
     <div class="todo" id="todo"></div>
     <div class="barrow" style="margin-top:10px"><div class="bar"><i id="tdBar" style="width:0;background:#f5c9a0"></i></div><b id="tdPct">–</b></div>
-    <p class="dim" style="margin-top:22px">Coming later: habits &amp; meal planner as extra tabs.</p>
+    <p class="dim" style="margin-top:22px">Coming later: meal planner.</p>
   </aside>
   <main>
     <div class="topbar" id="topbar">
@@ -42,6 +46,7 @@
       <button class="iconbtn" id="today">Today</button>
       <button class="iconbtn" id="next" title="Next week">›</button>
       <h2 id="title"></h2>
+      <button class="iconbtn" id="exportBtn" title="Save weeks as a PDF">📄 Export PDF</button>
       <button class="iconbtn" id="cust">✨ Customize</button>
     </div>
     <div class="board" id="board"></div>
@@ -58,8 +63,48 @@
   <div class="f"><label>“Focus” label</label><input id="lblFocus"></div>
   <div class="f"><label>Events label</label><input id="lblEvents"></div>
   <div class="f"><label>Tasks label</label><input id="lblTasks"></div>
+  <b style="display:block;margin-top:14px">Backup</b>
+  <p class="dim" style="margin:4px 0 8px">Your planner is stored in this browser only. Save a backup file now and then (and keep it in a safe place, e.g. iCloud Drive).</p>
+  <div class="dlgbtns" style="justify-content:flex-start">
+    <button class="iconbtn" id="bkSave" type="button">⬇ Save backup</button>
+    <label class="iconbtn" style="cursor:pointer">⬆ Restore backup<input type="file" id="bkFile" accept=".json,application/json" hidden></label>
+  </div>
+  <div class="dim" id="bkMsg" style="margin-top:6px"></div>
   <div style="text-align:right;margin-top:14px"><button class="iconbtn" onclick="document.getElementById('dlg').close()">Done</button></div>
 </dialog>
+
+<dialog id="dlgSeries">
+  <h3 id="sHead" style="margin-top:0">↻ New repeating event</h3>
+  <div class="f"><label>Title</label><input id="sTitle" placeholder="e.g. Yoga class"></div>
+  <div class="f"><label>Time</label><span class="inl"><select id="sH"></select> : <select id="sM"></select></span></div>
+  <div class="f"><label>Starts</label><span class="inl"><input type="date" id="sStart"></span></div>
+  <div class="f"><label>Repeats</label><select id="sKind"></select></div>
+  <div class="f" id="sDaysRow"><label>On</label><div class="chips" id="sDays"></div></div>
+  <div class="f"><label>Ends</label><span class="inl"><label><input type="radio" name="sEnd" value="never" checked> never</label>
+    <label><input type="radio" name="sEnd" value="until"> on <input type="date" id="sUntil"></label></span></div>
+  <div class="dim" id="sErr" style="color:#c0504d;min-height:1em"></div>
+  <div class="dlgbtns"><button class="iconbtn danger" id="sDelete" type="button">Delete series</button><span style="flex:1"></span><button class="iconbtn" id="sCancel" type="button">Cancel</button><button class="iconbtn primary" id="sSave" type="button">Save</button></div>
+</dialog>
+
+<dialog id="dlgExport">
+  <h3 style="margin-top:0">📄 Export to PDF</h3>
+  <b>Which weeks?</b>
+  <div class="opt"><label><input type="radio" name="xr" value="this" checked> The week I’m looking at <span class="dim" id="xThis"></span></label></div>
+  <div class="opt"><label><input type="radio" name="xr" value="range"> Selected weeks</label>
+    <div class="f inl" style="margin:6px 0 0 22px"><label>From</label><span><input type="date" id="xFrom"></span></div>
+    <div class="f inl" style="margin:4px 0 0 22px"><label>To</label><span><input type="date" id="xTo"></span></div>
+  </div>
+  <b style="display:block;margin-top:12px">What to include?</b>
+  <div class="opt"><label><input type="checkbox" id="xEv" checked> Events</label></div>
+  <div class="opt"><label><input type="checkbox" id="xTk" checked> Tasks</label></div>
+  <div class="opt"><label><input type="checkbox" id="xHb"> Habits</label></div>
+  <div class="opt"><label><input type="checkbox" id="xTd"> Weekly to-do list</label></div>
+  <p class="dim" id="xCount" style="margin:10px 0 2px"></p>
+  <p class="dim" style="margin:0">Next, your Mac’s print window opens — choose <b>PDF → Save as PDF</b> at the bottom left.</p>
+  <div class="dlgbtns"><span style="flex:1"></span><button class="iconbtn" id="xCancel" type="button">Cancel</button><button class="iconbtn primary" id="xGo" type="button">Create PDF</button></div>
+</dialog>
+
+<div id="printRoot"></div>
 <script src="app.js"></script>
 </body>
 </html>
