@@ -508,8 +508,12 @@ function renderFileDlg(){
     h=`<p>Everything you do is <b>saved automatically in this browser</b> — when you reopen Hedgehog, it is all still there.</p>
        <p>A <b>backup</b> is a safety copy as of <i>right now</i>, kept in a file (for example in iCloud Drive). Changes you make afterwards are <b>not</b> added to it — make a new backup to capture them.</p>
        <p class="dim">${lastCopy()?"Last backup: "+new Date(lastCopy()).toLocaleDateString():"No backup copy yet."}</p>`;
-    if(isBrave)h+=`<details class="tip"><summary>Brave: turn on fully automatic file saving (one time)</summary>
-       <ol><li>Open a new tab and type <b>brave://flags</b></li><li>Search for <b>File System Access API</b></li><li>Set it to <b>Enabled</b> and click <b>Relaunch</b></li><li>Come back here and choose <b>Create my planner file</b></li></ol></details>`;
+    if(isBrave)h+=`<div class="tip"><b>Brave: turn on automatic file saving (one time, about 20 seconds)</b>
+       <div class="dlgbtns" style="justify-content:flex-start;margin:8px 0"><button class="iconbtn primary" data-f="bravecopy" type="button">📋 1. Copy the setting’s address</button></div>
+       <ol start="2"><li>Open a <b>new tab</b>, paste (<b>⌘V</b> / Ctrl+V) into the address bar and press Enter.</li>
+       <li>Set the highlighted item (File System Access API) to <b>Enabled</b>, then click <b>Relaunch</b>.</li>
+       <li>Open Hedgehog again → 💾 → <b>Create my planner file…</b></li></ol>
+       <span class="dim">If nothing is highlighted, type “file system” in the search box on that page.</span></div>`;
   }else if(fileHandle&&(fileState==="ok"||fileState==="saving")){
     h=`<p class="big">✓ Saved in <b>${esc(fileHandle.name)}</b></p><p class="dim">Every change is saved into this file by itself${lastWrite?" (last at "+new Date(lastWrite).toTimeString().slice(0,5)+")":""}. Nothing to do.</p>
        <div class="dlgbtns" style="justify-content:flex-start"><button class="iconbtn" data-f="now" type="button">Save now</button><button class="iconbtn" data-f="open" type="button">Open another file…</button><button class="iconbtn" data-f="create" type="button">Save as a new file…</button></div>`;
@@ -531,6 +535,11 @@ $("#fBody").addEventListener("click",async e=>{
   else if(a==="now"){await writeFile(true);fMsg(fileState==="ok"?"Saved.":"Couldn’t save — try Reconnect.")}
   else if(a==="reconnect"){fMsg((await reconnect())?"Reconnected.":"Not reconnected — click Reconnect and choose Allow.")}
   else if(a==="backup")downloadCopy();
+  else if(a==="bravecopy"){
+    const url="brave://flags/#file-system-access-api";
+    try{await navigator.clipboard.writeText(url);fMsg("Copied! Now open a new tab and paste it into the address bar.")}
+    catch(e){fMsg("Couldn’t copy automatically. Type this into a new tab instead: "+url)}
+  }
   renderFileDlg();
 });
 $("#fBody").addEventListener("change",async e=>{
