@@ -238,3 +238,9 @@ body.dark .chip2.ok{color:#9fd8ae}
 .cal .kwh{font-size:9px;letter-spacing:.05em}
 .mini .cal button.kwn{aspect-ratio:auto;border-radius:6px;font-size:10px;color:var(--muted);padding:0}
 .mini .cal button.kwn.inweek{color:var(--ink);font-weight:700}
+
+/* lab book items (read-only) */
+.ev.lab{background:rgba(99,102,241,.10);border-radius:4px;border-bottom-color:transparent}
+.ev.lab .labl{margin-left:auto;text-decoration:none;font-weight:700;color:#4338ca}
+body.dark .ev.lab{background:rgba(129,140,248,.16)}
+body.dark .ev.lab .labl{color:#a5b4fc}

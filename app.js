@@ -18,7 +18,7 @@ const THEMES={
 };
 const DEF_EMOJI=["🌸","🌿","🍀","☀️","🧺","🎈","🌙"];
 const DEFAULT_S={theme:"pastel",colors:THEMES.pastel.colors.slice(),emoji:DEF_EMOJI.slice(),weekStart:1,
-  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks"};
+  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks",labUrl:"https://dkepce.github.io/labbook/"};
 const KINDS=[["daily","Every day"],["weekdays","Every weekday (Mon–Fri)"],["weekly","Every week"],["biweekly","Every 2 weeks"],["monthly","Every month (same date)"],["yearly","Every year"]];
 
 /* ---------- storage ---------- */
@@ -64,6 +64,10 @@ function day(k){return D.days[k]||(D.days[k]={focus:"",events:[],tasks:[]})}
 const todoOf=()=>D.todo[key(view)]||(D.todo[key(view)]=[]);
 function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
 
+/* ---------- lab book link (read-only) ----------
+   She links Labbook.lbk once (same idea as the .hdg file). Hedgehog only READS it and draws the
+   experiments + planned lab events on their days. Nothing is written into her planner data. */
+const lab={handle:null,state:"none",items:load("hedgehog.lab",{})};
 /* ---------- repeating events ---------- */
 /* Kalenderwoche (ISO 8601): week 1 is the week with the first Thursday of the year */
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
@@ -87,6 +91,7 @@ function occurs(s,k){
 function dayEvents(k){
   const a=peek(k).events.map((e,i)=>({src:"o",ref:"o"+i,t:e.t,time:e.time||""}));
   D.series.forEach(s=>{if(occurs(s,k)){const o=s.over[k]||s;a.push({src:"s",ref:"s"+s.id,sid:s.id,t:o.t,time:o.time||""})}});
+  (lab.items[k]||[]).forEach(x=>a.push({src:"l",ref:"l",t:x.t,time:x.time||"",href:x.code?"#/entry/"+encodeURIComponent(x.code):"#/calendar/"+k}));   // read-only lab book items
   return a.sort((x,y)=>(x.time||"99:99").localeCompare(y.time||"99:99"));
 }
 
@@ -113,6 +118,7 @@ function evRow(e,k){
     const[h,m]=(e.time||":").split(":");
     const ser=e.src==="s"?`<div class="row2"><button class="lnk" type="button" data-series="${e.sid}">↻ Edit the whole series…</button></div>`:"";
     return `<div class="ev edit"><select class="eh">${hOpts(h)}</select>:<select class="em">${mOpts(m||"00")}</select><input class="ed" value="${esc(e.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button>${moveBox(k,ser)}</div>`}
+  if(e.src==="l")return `<div class="ev lab" title="From your lab book (read-only)"><span>${esc(e.time)}</span>🧪 ${esc(e.t)}<a class="labl" href="${esc((S.labUrl||"").replace(/#.*$/,"")+e.href)}" target="_blank" rel="noopener" title="Open in Lab book">↗</a></div>`;
   return `<div class="ev" draggable="true" data-drag="ev" data-edit="ev" data-ref="${e.ref}"><span>${esc(e.time)}</span>${esc(e.t)}${e.src==="s"?'<b class="rep" title="Repeating event">↻</b>':""}<button class="x dup" data-dup="ev|${e.ref}" type="button" title="Duplicate">⧉</button><button class="x" data-evdel="${e.ref}" type="button" title="${e.src==="s"?"Remove only this one":"Delete"}">✕</button></div>`}
 
 function render(){
@@ -588,8 +594,59 @@ async function initFile(){
   await syncFromFile();
 }
 
+/* ---------- lab book: read Labbook.lbk ---------- */
+const LBK_TYPES=[{description:"Labbook",accept:{"application/x-labbook":[".lbk"]}}];
+async function permRead(h,ask){
+  if(!h.queryPermission)return true;
+  const o={mode:"read"};
+  if(await h.queryPermission(o)==="granted")return true;
+  return !!ask&&(await h.requestPermission(o))==="granted";
+}
+function labStatus(){
+  const m={none:"Not linked. Choose the Labbook.lbk file that Labbook saves.",ok:"✓ Linked to "+(lab.handle?lab.handle.name:"")+" — updated "+(lab.at?new Date(lab.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""),needs:"⚠ Hedgehog needs your permission to read "+(lab.handle?lab.handle.name:"the file")+" again. Click Reconnect. (Showing the last copy meanwhile.)",error:"⚠ That file could not be read. (Showing the last copy meanwhile.)"};
+  const el=$("#labStatus");if(!el)return;
+  el.textContent=m[lab.state]||"";
+  $("#labLink").textContent=lab.handle?"Choose another file…":"Link Labbook.lbk…";
+  $("#labReconnect").hidden=lab.state!=="needs";$("#labUnlink").hidden=!lab.handle;
+  $("#labUrl").value=S.labUrl||"";
+}
+async function labRefresh(){
+  if(!lab.handle||!window.showOpenFilePicker)return;
+  try{
+    if(!await permRead(lab.handle,false)){lab.state="needs";labStatus();return}
+    const j=JSON.parse(await (await lab.handle.getFile()).text());
+    if(j.app!=="labbook"||!j.data)throw new Error("not a Labbook file");
+    const items={},put=(d,x)=>{if(d)(items[d]=items[d]||[]).push(x)};
+    Object.values(j.data.entries||{}).forEach(e=>put(e.date,{t:e.code+" · "+e.title,time:"",code:e.code}));
+    (j.data.events||[]).forEach(v=>put(v.date,{t:v.title,time:v.time||""}));
+    lab.items=items;lab.at=Date.now();lab.state="ok";
+    try{localStorage.setItem("hedgehog.lab",JSON.stringify(items))}catch(e){}
+    render();labStatus();
+  }catch(e){lab.state="error";labStatus()}
+}
+async function labLink(){
+  try{
+    const[h]=await showOpenFilePicker({types:LBK_TYPES,excludeAcceptAllOption:true});
+    lab.handle=h;await idbSet("lab",h);await labRefresh();
+  }catch(e){if(e.name!=="AbortError"){lab.state="error";labStatus()}}
+}
+$("#labLink").onclick=()=>{if(window.showOpenFilePicker)labLink();else $("#labStatus").textContent="This browser can't read files directly. In Brave, enable “File System Access API” in brave://flags."};
+$("#labReconnect").onclick=async()=>{if(lab.handle&&await permRead(lab.handle,true))labRefresh()};
+$("#labUnlink").onclick=async()=>{lab.handle=null;lab.items={};lab.state="none";await idbSet("lab",null);try{localStorage.removeItem("hedgehog.lab")}catch(e){}render();labStatus()};
+$("#labUrl").addEventListener("input",e=>{S.labUrl=e.target.value.trim();render()});
+$("#cust").addEventListener("click",labStatus);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)labRefresh()});
+window.addEventListener("focus",labRefresh);
+async function initLab(){
+  if(!window.showOpenFilePicker)return;
+  const h=await idbGet("lab");if(!h)return;
+  lab.handle=h;
+  if(await permRead(h,false))labRefresh();else{lab.state="needs"}
+}
+
 render();
 initFile();
+initLab();
 
 /* installable + works offline */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
