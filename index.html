@@ -69,7 +69,15 @@
   <div class="dlgbtns" style="justify-content:flex-start;margin-top:6px"><button class="iconbtn" id="labLink" type="button">Link LabGorilla.lbk…</button><button class="iconbtn" id="labReconnect" type="button" hidden>Reconnect</button><button class="iconbtn" id="labUnlink" type="button" hidden>Unlink</button></div>
   <div class="f"><label>Lab book address</label><input id="labUrl" placeholder="https://…/labgorilla/"></div>
   <p class="dim" id="labUrlMsg" style="margin:0;color:#b45309"></p>
-  <p class="dim" style="margin:0">The ↗ links go to this web address. If LabGorilla is installed as an app, the browser can open them in the app instead (look for an “Open supported links” option for the installed app in your browser’s app settings).</p>
+  <details style="margin:4px 0"><summary class="dim" style="cursor:pointer">How to make ↗ open the installed LabGorilla app (Brave)</summary>
+    <ol class="dim" style="margin:6px 0 0;padding-left:20px;line-height:1.5">
+      <li>Open <b>brave://flags</b>, search for <b>Desktop PWA Link Capturing</b>, set it to <b>Enabled</b> and click <b>Relaunch</b>.</li>
+      <li>Install LabGorilla as an app (install icon in the address bar of its web page).</li>
+      <li>Open the app's settings in Brave (brave://apps → right-click LabGorilla → App settings) and switch on <b>Open supported links</b>.</li>
+      <li>Click a ↗ here. It now opens in the LabGorilla app window instead of a browser tab.</li>
+    </ol>
+    <p class="dim" style="margin:6px 0 0">Without this, ↗ still works: it opens LabGorilla in a normal browser tab.</p>
+  </details>
   <p class="dim" style="margin:0">Shows your experiments and planned lab events in the week, read-only. Nothing is copied into your planner.</p>
   <div style="text-align:right;margin-top:14px"><button class="iconbtn" onclick="document.getElementById('dlg').close()">Done</button></div>
 </dialog>
