@@ -18,7 +18,7 @@ const THEMES={
 };
 const DEF_EMOJI=["🌸","🌿","🍀","☀️","🧺","🎈","🌙"];
 const DEFAULT_S={theme:"pastel",colors:THEMES.pastel.colors.slice(),emoji:DEF_EMOJI.slice(),weekStart:1,
-  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks",labUrl:"https://dkepce.github.io/labbook/"};
+  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks",labUrl:"https://dkepce.github.io/labgorilla/"};
 const KINDS=[["daily","Every day"],["weekdays","Every weekday (Mon–Fri)"],["weekly","Every week"],["biweekly","Every 2 weeks"],["monthly","Every month (same date)"],["yearly","Every year"]];
 
 /* ---------- storage ---------- */
@@ -65,7 +65,7 @@ const todoOf=()=>D.todo[key(view)]||(D.todo[key(view)]=[]);
 function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
 
 /* ---------- lab book link (read-only) ----------
-   She links Labbook.lbk once (same idea as the .hdg file). Hedgehog only READS it and draws the
+   She links LabGorilla.lbk once (same idea as the .hdg file). Hedgehog only READS it and draws the
    experiments + planned lab events on their days. Nothing is written into her planner data. */
 const lab={handle:null,state:"none",items:load("hedgehog.lab",{})};
 /* ---------- repeating events ---------- */
@@ -594,8 +594,8 @@ async function initFile(){
   await syncFromFile();
 }
 
-/* ---------- lab book: read Labbook.lbk ---------- */
-const LBK_TYPES=[{description:"Labbook",accept:{"application/x-labbook":[".lbk"]}}];
+/* ---------- lab book: read LabGorilla.lbk ---------- */
+const LBK_TYPES=[{description:"LabGorilla",accept:{"application/x-labgorilla":[".lbk"]}}];
 async function permRead(h,ask){
   if(!h.queryPermission)return true;
   const o={mode:"read"};
@@ -603,10 +603,10 @@ async function permRead(h,ask){
   return !!ask&&(await h.requestPermission(o))==="granted";
 }
 function labStatus(){
-  const m={none:"Not linked. Choose the Labbook.lbk file that Labbook saves.",ok:"✓ Linked to "+(lab.handle?lab.handle.name:"")+" — updated "+(lab.at?new Date(lab.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""),needs:"⚠ Hedgehog needs your permission to read "+(lab.handle?lab.handle.name:"the file")+" again. Click Reconnect. (Showing the last copy meanwhile.)",error:"⚠ That file could not be read. (Showing the last copy meanwhile.)"};
+  const m={none:"Not linked. Choose the LabGorilla.lbk file that LabGorilla saves.",ok:"✓ Linked to "+(lab.handle?lab.handle.name:"")+" — updated "+(lab.at?new Date(lab.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""),needs:"⚠ Hedgehog needs your permission to read "+(lab.handle?lab.handle.name:"the file")+" again. Click Reconnect. (Showing the last copy meanwhile.)",error:"⚠ That file could not be read. (Showing the last copy meanwhile.)"};
   const el=$("#labStatus");if(!el)return;
   el.textContent=m[lab.state]||"";
-  $("#labLink").textContent=lab.handle?"Choose another file…":"Link Labbook.lbk…";
+  $("#labLink").textContent=lab.handle?"Choose another file…":"Link LabGorilla.lbk…";
   $("#labReconnect").hidden=lab.state!=="needs";$("#labUnlink").hidden=!lab.handle;
   $("#labUrl").value=S.labUrl||"";
 }
@@ -615,7 +615,7 @@ async function labRefresh(){
   try{
     if(!await permRead(lab.handle,false)){lab.state="needs";labStatus();return}
     const j=JSON.parse(await (await lab.handle.getFile()).text());
-    if(j.app!=="labbook"||!j.data)throw new Error("not a Labbook file");
+    if((j.app!=="labgorilla"&&j.app!=="labbook")||!j.data)throw new Error("not a LabGorilla file");
     const items={},put=(d,x)=>{if(d)(items[d]=items[d]||[]).push(x)};
     Object.values(j.data.entries||{}).forEach(e=>put(e.date,{t:e.code+" · "+e.title,time:"",code:e.code}));
     (j.data.events||[]).forEach(v=>put(v.date,{t:v.title,time:v.time||""}));
