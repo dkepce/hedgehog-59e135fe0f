@@ -18,13 +18,15 @@ const THEMES={
 };
 const DEF_EMOJI=["🌸","🌿","🍀","☀️","🧺","🎈","🌙"];
 const DEFAULT_S={theme:"pastel",colors:THEMES.pastel.colors.slice(),emoji:DEF_EMOJI.slice(),weekStart:1,
-  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks",labUrl:"https://dkepce.github.io/labgorilla/"};
+  lblBanner:"HEDGEHOG",lblFocus:"today's focus:",lblEvents:"Events",lblTasks:"Tasks",labUrl:"https://dkepce.github.io/labgorilla-cb19509868/"};
 const KINDS=[["daily","Every day"],["weekdays","Every weekday (Mon–Fri)"],["weekly","Every week"],["biweekly","Every 2 weeks"],["monthly","Every month (same date)"],["yearly","Every year"]];
 
 /* ---------- storage ---------- */
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 // (older builds used the "planner.*" keys — read them once so nothing is lost)
 let S=Object.assign({},DEFAULT_S,load("hedgehog.settings",null)||load("planner.settings",null)||{});
+const migrateLab=()=>{if(S.labUrl==="https://dkepce.github.io/labgorilla/")S.labUrl=DEFAULT_S.labUrl};   // the first default address no longer exists
+migrateLab();
 if(S.lblBanner==="WEEKLY PLAN")S.lblBanner="HEDGEHOG";
 let D=load("hedgehog.data",null)||load("planner.data",null)||{};
 
@@ -68,7 +70,7 @@ function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
    She links LabGorilla.lbk once (same idea as the .hdg file). Hedgehog only READS it and draws the
    experiments + planned lab events on their days. Nothing is written into her planner data. */
 const lab={handle:null,state:"none",items:load("hedgehog.lab",{})};
-const LAB_DEFAULT_URL="https://dkepce.github.io/labgorilla/";
+const LAB_DEFAULT_URL="https://dkepce.github.io/labgorilla-cb19509868/";
 const labUrlOk=u=>/^https?:\/\/[^\s"]+$/i.test(u||"");
 const labBase=()=>(labUrlOk(S.labUrl)?S.labUrl:LAB_DEFAULT_URL).replace(/#.*$/,"");
 /* ---------- repeating events ---------- */
@@ -480,7 +482,7 @@ async function readFile(h){return JSON.parse(await (await h.getFile()).text())}
 function checkPayload(j){if(!j||j.app!=="hedgehog"||!j.data||!j.data.days)throw new Error("not a Hedgehog file");return j}
 function applyPayload(j){
   checkPayload(j);
-  S=Object.assign({},DEFAULT_S,j.settings);D=j.data;fixData();editing=null;
+  S=Object.assign({},DEFAULT_S,j.settings);migrateLab();D=j.data;fixData();editing=null;
   savedAt=j.saved?Date.parse(j.saved)||Date.now():Date.now();lastSer=JSON.stringify({S,D});persistLocal();
   view=startOf(new Date(),S.weekStart);sel=key(new Date());mini=new Date(view.getFullYear(),view.getMonth(),1);
   render();
