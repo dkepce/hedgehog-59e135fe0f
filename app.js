@@ -68,6 +68,9 @@ function peek(k){return D.days[k]||{focus:"",events:[],tasks:[]}}
    She links LabGorilla.lbk once (same idea as the .hdg file). Hedgehog only READS it and draws the
    experiments + planned lab events on their days. Nothing is written into her planner data. */
 const lab={handle:null,state:"none",items:load("hedgehog.lab",{})};
+const LAB_DEFAULT_URL="https://dkepce.github.io/labgorilla/";
+const labUrlOk=u=>/^https?:\/\/[^\s"]+$/i.test(u||"");
+const labBase=()=>(labUrlOk(S.labUrl)?S.labUrl:LAB_DEFAULT_URL).replace(/#.*$/,"");
 /* ---------- repeating events ---------- */
 /* Kalenderwoche (ISO 8601): week 1 is the week with the first Thursday of the year */
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
@@ -118,7 +121,7 @@ function evRow(e,k){
     const[h,m]=(e.time||":").split(":");
     const ser=e.src==="s"?`<div class="row2"><button class="lnk" type="button" data-series="${e.sid}">↻ Edit the whole series…</button></div>`:"";
     return `<div class="ev edit"><select class="eh">${hOpts(h)}</select>:<select class="em">${mOpts(m||"00")}</select><input class="ed" value="${esc(e.t)}"><button class="ok" type="button" data-save="1">✓</button><button class="no" type="button" data-cancel="1">✕</button>${moveBox(k,ser)}</div>`}
-  if(e.src==="l")return `<div class="ev lab" title="From your lab book (read-only)"><span>${esc(e.time)}</span>🧪 ${esc(e.t)}<a class="labl" href="${esc((S.labUrl||"").replace(/#.*$/,"")+e.href)}" target="_blank" rel="noopener" title="Open in Lab book">↗</a></div>`;
+  if(e.src==="l")return `<div class="ev lab" title="From your lab book (read-only)"><span>${esc(e.time)}</span>🧪 ${esc(e.t)}<a class="labl" href="${esc(labBase()+e.href)}" target="_blank" rel="noopener" title="Open in Lab book">↗</a></div>`;
   return `<div class="ev" draggable="true" data-drag="ev" data-edit="ev" data-ref="${e.ref}"><span>${esc(e.time)}</span>${esc(e.t)}${e.src==="s"?'<b class="rep" title="Repeating event">↻</b>':""}<button class="x dup" data-dup="ev|${e.ref}" type="button" title="Duplicate">⧉</button><button class="x" data-evdel="${e.ref}" type="button" title="${e.src==="s"?"Remove only this one":"Delete"}">✕</button></div>`}
 
 function render(){
@@ -608,8 +611,9 @@ function labStatus(){
   el.textContent=m[lab.state]||"";
   $("#labLink").textContent=lab.handle?"Choose another file…":"Link LabGorilla.lbk…";
   $("#labReconnect").hidden=lab.state!=="needs";$("#labUnlink").hidden=!lab.handle;
-  $("#labUrl").value=S.labUrl||"";
+  $("#labUrl").value=S.labUrl||"";labUrlMsg();
 }
+function labUrlMsg(){const m=$("#labUrlMsg");if(m)m.textContent=labUrlOk(S.labUrl)?"":"This must be a web address starting with https:// (a file path or desktop shortcut will not work). Until then the standard address is used."}
 async function labRefresh(){
   if(!lab.handle||!window.showOpenFilePicker)return;
   try{
@@ -633,7 +637,7 @@ async function labLink(){
 $("#labLink").onclick=()=>{if(window.showOpenFilePicker)labLink();else $("#labStatus").textContent="This browser can't read files directly. In Brave, enable “File System Access API” in brave://flags."};
 $("#labReconnect").onclick=async()=>{if(lab.handle&&await permRead(lab.handle,true))labRefresh()};
 $("#labUnlink").onclick=async()=>{lab.handle=null;lab.items={};lab.state="none";await idbSet("lab",null);try{localStorage.removeItem("hedgehog.lab")}catch(e){}render();labStatus()};
-$("#labUrl").addEventListener("input",e=>{S.labUrl=e.target.value.trim();render()});
+$("#labUrl").addEventListener("input",e=>{S.labUrl=e.target.value.trim().replace(/^["'\s]+|["'\s]+$/g,"");labUrlMsg();render()});
 $("#cust").addEventListener("click",labStatus);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)labRefresh()});
 window.addEventListener("focus",labRefresh);
